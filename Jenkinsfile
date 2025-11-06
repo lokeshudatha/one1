@@ -7,8 +7,8 @@ pipeline {
 
     parameters {
         string(name: 'USER', defaultValue: 'Lokesh_Udatha', description: 'Enter your name here:')
-        booleanParam(name: 'Test', defaultValue: true, description: 'Running the test tasks here.')
-        choice(name: 'Env', choices: ['Build', 'Test', 'Prod'], description: 'Select one env here:')
+        booleanParam(name: 'Test', defaultValue: true, description: 'Run test tasks here.')
+        choice(name: 'Env', choices: ['Build', 'Test', 'Prod'], description: 'Select environment:')
     }
 
     stages {
@@ -18,18 +18,17 @@ pipeline {
                 A = "HR-462"
             }
             when {
-                expression {
-                    return params.Env == 'Build'
-                }
+                expression { return params.Env == 'Build' }
             }
             steps {
-                input message: 'Do you want to proceed next ....?', ok: 'Yes, Continue.', submitter: 'admin'
-                echo "Finally, Input block is completed"
+                input message: 'Do you want to proceed next?', ok: 'Yes, Continue.', submitter: 'admin'
+                echo "Input block completed."
             }
         }
 
-        stage('Parallel Tasks') {
+        stage('Build & Test in Parallel') {
             parallel {
+
                 stage('Build') {
                     when {
                         allOf {
@@ -38,14 +37,12 @@ pipeline {
                         }
                     }
                     steps {
-                        echo "I'm in a parallel block. I'll run some commands below..."
-                        script {
-                            sh '''
-                                mkdir -p lokesh
-                                cd lokesh
-                                echo "Inside lokesh directory"
-                            '''
-                        }
+                        echo "Build stage running..."
+                        sh '''
+                            mkdir -p lokesh
+                            cd lokesh
+                            echo "Inside build directory"
+                        '''
                     }
                 }
 
@@ -53,41 +50,28 @@ pipeline {
                     when {
                         expression { return env.A == "HR-462" }
                     }
-                    steps {
-                        echo "Running test stages..."
-                        script {
-                            try {
-                                echo "If it is correct. Environment: ${params.Env}"
-                                sh 'git --version'
-                            } catch (Exception e) {
-                                error("Stopping the pipeline because of some errors in my pipeline: ${e.message}")
-                            } finally {
-                                echo "Pipeline is completed."
-                            }
-                        }
-                    }
-
                     stages {
                         stage('One') {
                             steps {
                                 echo "sub-one-stage"
                             }
                         }
-                        stage('Two') {
-                            parallel {
-                                stage('multi-stage') {
-                                    steps {
-                                        echo "This is my final stage of pipeline"
-                                    }
-                                }
-                                stage('multi-two-stage') {
-                                    steps {
-                                        echo "THE END"
-                                    }
-                                }
-                            }
+
+                        stage('Two and its sub-stages') {
                             steps {
                                 echo "sub-two-stage"
+                            }
+                        }
+
+                        stage('Multi One') {
+                            steps {
+                                echo "This is my final stage of pipeline"
+                            }
+                        }
+
+                        stage('Multi Two') {
+                            steps {
+                                echo "THE END"
                             }
                         }
                     }
@@ -99,26 +83,22 @@ pipeline {
             parallel {
                 stage('final-touch') {
                     steps {
-                        script {
-                            sh '''
-                                mkdir -p final
-                                cd final
-                                touch fileone
-                            '''
-                        }
+                        sh '''
+                            mkdir -p final
+                            cd final
+                            touch fileone
+                        '''
                     }
                 }
 
                 stage('semi-final') {
                     steps {
-                        script {
-                            sh '''
-                                mkdir -p semi
-                                cd semi
-                                touch two
-                                echo "Hello, Some data in filetwo" >> two
-                            '''
-                        }
+                        sh '''
+                            mkdir -p semi
+                            cd semi
+                            touch two
+                            echo "Hello, some data in filetwo" >> two
+                        '''
                     }
                 }
             }
@@ -127,10 +107,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline completed successfully"
+            echo "Pipeline completed successfully!"
         }
         failure {
-            echo "My pipeline failed."
+            echo "Pipeline failed."
         }
         always {
             echo "Feel free to ask everything."
